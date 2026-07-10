@@ -86,7 +86,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setRounds(r: Int) { roundsSetting = r }
-    fun setInputMode(m: InputMode) { inputMode = m }
+    fun selectInputMode(m: InputMode) { inputMode = m }
 
     fun addPlayer(name: String) {
         val n = name.trim()

@@ -97,8 +97,8 @@ fun SetupScreen(vm: GameViewModel) {
         if (vm.mode != Mode.GRUPO) {
             Panel(title = "Como responder?") {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SelectChip("✋ Marcar eu mesmo", vm.inputMode == InputMode.SELF) { vm.setInputMode(InputMode.SELF) }
-                    SelectChip("⌨️ Digitar o nome", vm.inputMode == InputMode.TYPE) { vm.setInputMode(InputMode.TYPE) }
+                    SelectChip("✋ Marcar eu mesmo", vm.inputMode == InputMode.SELF) { vm.selectInputMode(InputMode.SELF) }
+                    SelectChip("⌨️ Digitar o nome", vm.inputMode == InputMode.TYPE) { vm.selectInputMode(InputMode.TYPE) }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
