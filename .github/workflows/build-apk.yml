@@ -32,27 +32,57 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Rename APK
+      - name: Prepare keystore (se configurada nos secrets)
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
+            echo "Keystore configurada — o AAB será assinado."
+          else
+            echo "Sem keystore — o AAB sairá SEM assinatura (não serve para publicar ainda)."
+          fi
+
+      - name: Build release AAB (bundle para a Play Store)
+        working-directory: android
+        env:
+          KEYSTORE_FILE: ${{ steps.keystore.outputs.path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Coletar artefatos
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/debug/app-debug.apk out/baralho-biblico.apk
+          AAB=$(find android/app/build/outputs/bundle/release -name '*.aab' | head -1)
+          if [ -n "$AAB" ]; then cp "$AAB" out/baralho-biblico.aab; fi
+          ls -la out
 
-      - name: Upload APK as artifact
+      - name: Upload como artefatos
         uses: actions/upload-artifact@v4
         with:
-          name: baralho-biblico-apk
-          path: out/baralho-biblico.apk
+          name: baralho-biblico
+          path: out/*
 
-      - name: Publish APK to Release
+      - name: Publicar na Release
         if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Baralho Bíblico — APK (debug para testes)
+          name: Baralho Bíblico — APK e AAB
           body: |
-            APK de teste gerado automaticamente a partir da pasta `/android`.
-            Para instalar no celular: baixe o arquivo e permita "instalar apps de fontes desconhecidas".
-          files: out/baralho-biblico.apk
+            Gerado automaticamente a partir da pasta `/android`.
+
+            - **baralho-biblico.apk** — instale no celular para testar (permita "fontes desconhecidas").
+            - **baralho-biblico.aab** — pacote para enviar à Google Play. Só fica **assinado** se a keystore
+              estiver cadastrada nos *secrets* do repositório (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).
+          files: |
+            out/baralho-biblico.apk
+            out/baralho-biblico.aab
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
